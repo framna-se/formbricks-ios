@@ -8,7 +8,7 @@ final class FormbricksViewModel: ObservableObject {
 
     init(workspaceResponse: WorkspaceResponse, surveyId: String) {
         self.surveyId = surveyId
-        if let webviewDataJson = WebViewData(workspaceResponse: workspaceResponse, surveyId: surveyId).getJsonString(),
+        if let webviewDataJson = WebViewData(workspaceResponse: workspaceResponse, surveyId: surveyId).getBase64EncodedJson(),
            let surveyScriptUrl = FormbricksWorkspace.surveyScriptUrlString {
             htmlString = htmlTemplate.replacingOccurrences(of: "{{WEBVIEW_DATA}}", with: webviewDataJson)
                 .replacingOccurrences(of: "{{SURVEY_SCRIPT_URL}}", with: surveyScriptUrl)
@@ -33,7 +33,11 @@ private extension FormbricksViewModel {
             </body>
 
             <script type="text/javascript">
-                const json = `{{WEBVIEW_DATA}}`
+                // Payload is base64-encoded UTF-8 JSON (see getBase64EncodedJson) so survey-authored
+                // content cannot break out of the string literal and inject script.
+                const base64Payload = "{{WEBVIEW_DATA}}";
+                const payloadBytes = Uint8Array.from(atob(base64Payload), function (c) { return c.charCodeAt(0); });
+                const json = new TextDecoder("utf-8").decode(payloadBytes);
                 let surveyProps = '';
 
                 function onClose() {
@@ -127,10 +131,14 @@ private class WebViewData {
         data["styling"] = hasCustomStyling && enabled ? workspaceResponse.getSurveyStylingJson(forSurveyId: surveyId): workspaceResponse.getSettingsStylingJson()
     }
 
-    func getJsonString() -> String? {
+    /// Returns the survey payload as base64-encoded UTF-8 JSON.
+    /// The value is injected into the HTML template and decoded in JS. Base64 output contains no
+    /// backticks, `${`, or `</script>` sequences, so survey-authored content cannot break out of the
+    /// string literal and inject script (unlike embedding raw JSON directly).
+    func getBase64EncodedJson() -> String? {
         do {
             let jsonData = try JSONSerialization.data(withJSONObject: data, options: [])
-            return String(data: jsonData, encoding: .utf8)?.replacingOccurrences(of: "\\\"", with: "'")
+            return jsonData.base64EncodedString()
         } catch {
             Formbricks.logger?.error(error.message)
             return nil
