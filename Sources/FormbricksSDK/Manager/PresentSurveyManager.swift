@@ -67,7 +67,7 @@ final class PresentSurveyManager {
             let vc = UIHostingController(rootView: view)
             vc.modalPresentationStyle = .overFullScreen
             vc.modalTransitionStyle = .crossDissolve
-            vc.view.backgroundColor = .clear
+            vc.view.backgroundColor = UIColor.black.withAlphaComponent(0.4)
             self.viewController = vc
             presenter.present(
                 vc, animated: true,
