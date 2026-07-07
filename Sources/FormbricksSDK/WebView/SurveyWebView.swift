@@ -178,11 +178,13 @@ final class JsMessageHandler: NSObject, WKScriptMessageHandler {
             case .onResponseCreated:
                 Formbricks.surveyManager?.postResponse(surveyId: surveyId)
                 refreshSegmentsOnce(for: .onResponse)
+                Formbricks.onSurveyEvent?(.responded(surveyId: surveyId))
 
                 /// Happens when a survey is shown.
             case .onDisplayCreated:
                 Formbricks.surveyManager?.onNewDisplay(surveyId: surveyId)
                 refreshSegmentsOnce(for: .onDisplay)
+                Formbricks.onSurveyEvent?(.displayed(surveyId: surveyId))
 
             /// Happens when the survey is completed and the finished response has been
             /// accepted by the backend. Only used to refresh interaction-based segments —
@@ -193,6 +195,7 @@ final class JsMessageHandler: NSObject, WKScriptMessageHandler {
             /// Happens when the user closes the survey view with the close button.
             case .onClose:
                 Formbricks.surveyManager?.dismissSurveyWebView()
+                Formbricks.onSurveyEvent?(.closed(surveyId: surveyId))
             
             /// Happens when the survey wants to open an external link in the default browser.
             case .onOpenExternalURL:

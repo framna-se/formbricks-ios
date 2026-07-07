@@ -51,3 +51,17 @@ Then bump the pinned version in the SJ app's Swift Package dependency.
 skips all survey filtering (display-type, recontact, segment) and the display-percentage gate, so
 any triggered survey shows every time. For engineering-mode/manual testing only — never enable in
 production. Not present in upstream.
+
+## Survey lifecycle callback (SJ addition)
+
+`Formbricks.onSurveyEvent: ((FormbricksSurveyEvent) -> Void)?` — set by the host to observe survey
+lifecycle. `FormbricksSurveyEvent` is `.displayed(surveyId:)` / `.responded(surveyId:)` /
+`.closed(surveyId:)`, forwarded from the WebView JS events in `JsMessageHandler` on the main thread.
+Purely additive; the SDK's internal routing is unchanged. Not present upstream.
+
+## Presentation scrim (SJ change)
+
+`PresentSurveyManager` now presents the survey host controller with a dim background
+(`UIColor.black.withAlphaComponent(0.4)`) instead of `.clear`, so the overlay reads as a modal
+(previously the full-screen transparent host blocked touches with no visible scrim). The WebView
+stays clear on top, so `clickOutsideClose` still works.

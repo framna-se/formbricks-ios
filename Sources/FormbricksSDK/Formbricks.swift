@@ -2,6 +2,16 @@ import Foundation
 import Network
 
 /// The main class of the Formbricks SDK. It contains the main methods to interact with the SDK.
+/// Survey lifecycle events delivered to `Formbricks.onSurveyEvent`.
+public enum FormbricksSurveyEvent {
+    /// The survey was shown to the user.
+    case displayed(surveyId: String)
+    /// The user submitted a response.
+    case responded(surveyId: String)
+    /// The survey was closed/dismissed.
+    case closed(surveyId: String)
+}
+
 @objc(Formbricks) public class Formbricks: NSObject {
     
     static internal var appUrl: String?
@@ -28,6 +38,10 @@ import Network
         get { SurveyManager.bypassFiltersForTesting }
         set { SurveyManager.bypassFiltersForTesting = newValue }
     }
+
+    /// Survey lifecycle events forwarded from the WebView, for the host app to observe when a survey
+    /// is shown, answered, or closed. Invoked on the main thread. Not `@objc` (Swift enum payload).
+    public static var onSurveyEvent: ((FormbricksSurveyEvent) -> Void)?
 
     // make this class not instantiatable outside of the SDK
     internal override init() {
