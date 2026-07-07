@@ -46,10 +46,20 @@ final class SurveyManager {
     /// Store error state
     internal private(set) var hasApiError: Bool = false
 
+    /// Debug/testing only: when `true`, `filterSurveys()` keeps every survey (skipping display-type,
+    /// recontact and segment filtering) and `shouldDisplayBasedOnPercentage` always passes, so any
+    /// triggered survey is shown every time. Never enable in production.
+    internal static var bypassFiltersForTesting = false
+
     /// Fills up the `filteredSurveys` array
     func filterSurveys() {
         guard let workspace = workspaceResponse else { return }
         guard let surveys = workspace.data.data.surveys else { return }
+
+        if SurveyManager.bypassFiltersForTesting {
+            filteredSurveys = surveys
+            return
+        }
 
         let displays = userManager.displays ?? []
         let responses = userManager.responses ?? []
@@ -228,6 +238,7 @@ private extension SurveyManager {
 
     /// Decides if the survey should be displayed based on the display percentage.
     internal func shouldDisplayBasedOnPercentage(_ displayPercentage: Double?) -> Bool {
+        if SurveyManager.bypassFiltersForTesting { return true }
         guard let displayPercentage = displayPercentage else { return true }
         let clampedPercentage = min(max(displayPercentage, 0), 100)
         let draw = Double.random(in: 0..<100)

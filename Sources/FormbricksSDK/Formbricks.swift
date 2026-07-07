@@ -20,7 +20,15 @@ import Network
     static internal var surveyManager: SurveyManager?
     static internal var apiQueue: OperationQueue? = OperationQueue()
     static internal var logger: Logger?
-    
+
+    /// Debug/testing only: when `true`, the SDK ignores all survey display filtering (segment,
+    /// recontact, display-once/limit) and the display-percentage gate, so any triggered survey is
+    /// shown every time. Never enable in production builds.
+    @objc public static var debugBypassDisplayFilters: Bool {
+        get { SurveyManager.bypassFiltersForTesting }
+        set { SurveyManager.bypassFiltersForTesting = newValue }
+    }
+
     // make this class not instantiatable outside of the SDK
     internal override init() {
         /* 

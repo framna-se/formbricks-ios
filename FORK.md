@@ -44,3 +44,10 @@ git tag <new-upstream-tag>-sj.1 && git push origin sj/hardening --tags
 ```
 
 Then bump the pinned version in the SJ app's Swift Package dependency.
+
+## Testing helper (SJ addition)
+
+`Formbricks.debugBypassDisplayFilters` (default `false`): when set to `true`, `SurveyManager`
+skips all survey filtering (display-type, recontact, segment) and the display-percentage gate, so
+any triggered survey shows every time. For engineering-mode/manual testing only — never enable in
+production. Not present in upstream.
