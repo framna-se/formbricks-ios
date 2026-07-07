@@ -40,8 +40,9 @@ public enum FormbricksSurveyEvent {
     }
 
     /// Survey lifecycle events forwarded from the WebView, for the host app to observe when a survey
-    /// is shown, answered, or closed. Invoked on the main thread. Not `@objc` (Swift enum payload).
-    public static var onSurveyEvent: ((FormbricksSurveyEvent) -> Void)?
+    /// is shown, answered, or closed. Invoked on the main thread (set and read under a main-thread
+    /// contract — hence `nonisolated(unsafe)`). Not `@objc` (Swift enum payload).
+    public nonisolated(unsafe) static var onSurveyEvent: ((FormbricksSurveyEvent) -> Void)?
 
     // make this class not instantiatable outside of the SDK
     internal override init() {
