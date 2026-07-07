@@ -106,7 +106,12 @@ final class SurveyManager {
             return
         }
 
-        let firstSurveyWithActionClass = filteredSurveys.first { survey in
+        // Testing bypass: select from all surveys, since `filteredSurveys` may have been computed
+        // before the bypass flag was set (e.g. emptied by segment filtering for an anonymous user).
+        let candidateSurveys = SurveyManager.bypassFiltersForTesting
+            ? (workspaceResponse?.data.data.surveys ?? [])
+            : filteredSurveys
+        let firstSurveyWithActionClass = candidateSurveys.first { survey in
             return survey.triggers?.contains(where: { $0.actionClass?.name == actionClass.name }) ?? false
         }
 
