@@ -65,3 +65,10 @@ Purely additive; the SDK's internal routing is unchanged. Not present upstream.
 (`UIColor.black.withAlphaComponent(0.4)`) instead of `.clear`, so the overlay reads as a modal
 (previously the full-screen transparent host blocked touches with no visible scrim). The WebView
 stays clear on top, so `clickOutsideClose` still works.
+
+## Eligibility query (SJ addition)
+
+`Formbricks.hasEligibleSurvey(forAction:) -> Bool` — reports whether a survey would show for a code
+action, WITHOUT presenting it (mirrors `track()`'s matching, ignores the display-percentage dice).
+Lets the host offer an opt-in prompt only when a survey actually exists. Requires the workspace to be
+loaded. Not present upstream.

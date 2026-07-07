@@ -299,9 +299,23 @@ public enum FormbricksSurveyEvent {
                 Formbricks.logger?.warning(FormbricksSDKError.init(type: .networkError).message)
             }
         }
-        
+
     }
-    
+
+    /**
+     Returns whether a survey is currently eligible to be shown for the given code action, WITHOUT
+     presenting it. Lets the host decide up front whether to offer the survey (e.g. show a prompt).
+     Requires the SDK to be initialized and the workspace to have loaded; returns `false` otherwise.
+     Ignores the survey's display-percentage sampling — reports only that a matching survey exists.
+     */
+    @objc public static func hasEligibleSurvey(forAction action: String) -> Bool {
+        guard Formbricks.isInitialized else {
+            return false
+        }
+
+        return surveyManager?.hasEligibleSurvey(forAction: action) ?? false
+    }
+
     /**
      Logs out the current user. This will clear the user attributes and the user id.
      The SDK must be initialized before calling this method.

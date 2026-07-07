@@ -94,6 +94,24 @@ final class SurveyManager {
         }
     }
 
+    /// Returns whether a survey would be eligible to show for the given code action, WITHOUT
+    /// presenting it. Mirrors `track()`'s action + candidate-survey matching but ignores the
+    /// display-percentage dice, so callers can decide up front whether to offer the survey.
+    func hasEligibleSurvey(forAction action: String) -> Bool {
+        let actionClasses = workspaceResponse?.data.data.actionClasses ?? []
+        let codeActionClasses = actionClasses.filter { $0.type == "code" }
+        guard let actionClass = codeActionClasses.first(where: { $0.key == action }) else {
+            return false
+        }
+
+        let candidateSurveys = SurveyManager.bypassFiltersForTesting
+            ? (workspaceResponse?.data.data.surveys ?? [])
+            : filteredSurveys
+        return candidateSurveys.contains { survey in
+            return survey.triggers?.contains(where: { $0.actionClass?.name == actionClass.name }) ?? false
+        }
+    }
+
     /// Checks if there are any surveys to display, based in the track action, and if so, displays the first one.
     /// Handles the display percentage and the delay of the survey.
     func track(_ action: String, completion: (() -> Void)? = nil) {
