@@ -136,15 +136,15 @@ final class JsMessageHandler: NSObject, WKScriptMessageHandler {
             
             /// Happens when the survey wants to open an external link in the default browser.
             case .onOpenExternalURL:
-                // Only open http(s) links from the survey. Without a scheme allowlist the web
-                // content could trigger arbitrary schemes (tel:, custom app deep links, etc.).
+                // Only open https links from the survey. Without a scheme allowlist the web
+                // content could trigger arbitrary schemes (tel:, custom app deep links, etc.),
+                // and plain http would hand the tap to an unencrypted destination.
                 if let message = try? JSONDecoder().decode(OpenExternalUrlMessage.self, from: data),
                    let url = URL(string: message.onOpenExternalURLParams.url),
-                   let scheme = url.scheme?.lowercased(),
-                   scheme == "http" || scheme == "https" {
+                   url.scheme?.lowercased() == "https" {
                     UIApplication.shared.open(url)
                 } else {
-                    Formbricks.logger?.error("Blocked onOpenExternalURL: missing or non-http(s) scheme.")
+                    Formbricks.logger?.error("Blocked onOpenExternalURL: missing or non-https scheme.")
                 }
                 
             /// Happens when the survey library fails to load.
