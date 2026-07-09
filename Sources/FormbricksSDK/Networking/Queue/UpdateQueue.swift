@@ -37,6 +37,14 @@ final class UpdateQueue {
             startDebounceTimer()
         }
     }
+
+    /// The user id queued for the next commit, if any. Lets `Formbricks.syncAttributes` resolve the
+    /// intended identity before the first `/user` round-trip has persisted it on `UserManager`.
+    var pendingUserId: String? {
+        syncQueue.sync {
+            userId
+        }
+    }
     
     func set(attributes: [String : AttributeValue]) {
         syncQueue.sync {
