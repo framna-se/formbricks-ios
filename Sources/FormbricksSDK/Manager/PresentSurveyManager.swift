@@ -34,8 +34,10 @@ final class PresentSurveyManager {
     }
 
     /// Present the webview as a page sheet over the current top-most view controller.
+    /// `hiddenFields` are injected into the survey renderer's `hiddenFieldsRecord`.
     func present(
-        workspaceResponse: WorkspaceResponse, id: String, completion: ((Bool) -> Void)? = nil
+        workspaceResponse: WorkspaceResponse, id: String, hiddenFields: [String: String]? = nil,
+        completion: ((Bool) -> Void)? = nil
     ) {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
@@ -63,7 +65,8 @@ final class PresentSurveyManager {
             }
 
             let view = FormbricksView(
-                viewModel: FormbricksViewModel(workspaceResponse: workspaceResponse, surveyId: id))
+                viewModel: FormbricksViewModel(
+                    workspaceResponse: workspaceResponse, surveyId: id, hiddenFields: hiddenFields))
             let vc = UIHostingController(rootView: view)
             vc.modalPresentationStyle = .overFullScreen
             vc.modalTransitionStyle = .crossDissolve

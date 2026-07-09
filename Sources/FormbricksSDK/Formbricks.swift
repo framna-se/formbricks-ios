@@ -279,22 +279,27 @@ public enum FormbricksSurveyEvent {
     /**
      Tracks an action with the given `String`. The SDK will process the action and it will present the survey if any of them can be triggered.
      The SDK must be initialized before calling this method.
-          
+
+     `hiddenFields` (SJ addition) are passed to the survey renderer as its `hiddenFieldsRecord` and
+     submitted with the response, so per-trigger context (e.g. a train number) reaches the response
+     data. Each key must be declared as a hidden field on the survey in Formbricks, or it is dropped.
+
      Example:
      ```swift
      Formbricks.track("button_clicked")
+     Formbricks.track("journey_completed", hiddenFields: ["trainNumber": "545"])
      ```
      */
-    @objc public static func track(_ action: String, completion: (() -> Void)? = nil) {
+    @objc public static func track(_ action: String, hiddenFields: [String: String]? = nil, completion: (() -> Void)? = nil) {
         guard Formbricks.isInitialized else {
             let error = FormbricksSDKError(type: .sdkIsNotInitialized)
             Formbricks.logger?.error(error.message)
             return
         }
-        
+
         Formbricks.isInternetAvailabile { available in
             if available {
-                surveyManager?.track(action, completion: completion)
+                surveyManager?.track(action, hiddenFields: hiddenFields, completion: completion)
             } else {
                 Formbricks.logger?.warning(FormbricksSDKError.init(type: .networkError).message)
             }

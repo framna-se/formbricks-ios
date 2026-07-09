@@ -6,9 +6,9 @@ final class FormbricksViewModel: ObservableObject {
     @Published var htmlString: String?
     let surveyId: String
 
-    init(workspaceResponse: WorkspaceResponse, surveyId: String) {
+    init(workspaceResponse: WorkspaceResponse, surveyId: String, hiddenFields: [String: String]? = nil) {
         self.surveyId = surveyId
-        if let webviewDataJson = WebViewData(workspaceResponse: workspaceResponse, surveyId: surveyId).getJsonString(),
+        if let webviewDataJson = WebViewData(workspaceResponse: workspaceResponse, surveyId: surveyId, hiddenFields: hiddenFields).getJsonString(),
            let surveyScriptUrl = FormbricksWorkspace.surveyScriptUrlString {
             // Base64-encode the payload before injecting it into the HTML. Base64 output is
             // limited to [A-Za-z0-9+/=], so survey content can no longer contain characters
@@ -105,7 +105,7 @@ private extension FormbricksViewModel {
 private class WebViewData {
     var data: [String: Any] = [:]
 
-    init(workspaceResponse: WorkspaceResponse, surveyId: String) {
+    init(workspaceResponse: WorkspaceResponse, surveyId: String, hiddenFields: [String: String]?) {
         let matchedSurvey = workspaceResponse.data.data.surveys?.first(where: {$0.id == surveyId})
         let settings = workspaceResponse.data.data.settings
 
@@ -117,6 +117,14 @@ private class WebViewData {
         data["environmentId"] = Formbricks.workspaceId
         data["contactId"] = Formbricks.userManager?.contactId
         data["isWebEnvironment"] = false
+
+        // SJ addition: per-trigger response context. The survey renderer seeds its response data
+        // with `hiddenFieldsRecord` and submits it with every response. Keys must be declared as
+        // hidden fields on the survey in Formbricks, or the backend drops them.
+        if let hiddenFields, !hiddenFields.isEmpty {
+            data["hiddenFieldsRecord"] = hiddenFields
+        }
+
         data["isBrandingEnabled"] = settings.inAppSurveyBranding ?? true
 
         if let placementEnum = matchedSurvey?.projectOverwrites?.placement {

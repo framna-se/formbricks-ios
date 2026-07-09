@@ -66,6 +66,15 @@ Purely additive; the SDK's internal routing is unchanged. Not present upstream.
 (previously the full-screen transparent host blocked touches with no visible scrim). The WebView
 stays clear on top, so `clickOutsideClose` still works.
 
+## Per-trigger hidden fields (SJ addition)
+
+`Formbricks.track(_:hiddenFields:completion:)` — optional `[String: String]` forwarded through
+`SurveyManager`/`PresentSurveyManager` into the WebView payload as `hiddenFieldsRecord`, which the
+survey renderer seeds into its response data and submits with every response (create and update).
+Lets the host attach per-trigger context (e.g. train number, journey date) to responses. Each key
+must be declared as a hidden field on the survey in Formbricks, or the backend drops it. Calling
+`track` without the parameter is unchanged. Not present upstream.
+
 ## Eligibility query (SJ addition)
 
 `Formbricks.hasEligibleSurvey(forAction:) -> Bool` — reports whether a survey would show for a code
