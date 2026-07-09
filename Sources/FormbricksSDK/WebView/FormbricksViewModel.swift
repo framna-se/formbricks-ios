@@ -6,9 +6,9 @@ final class FormbricksViewModel: ObservableObject {
     @Published var htmlString: String?
     let surveyId: String
 
-    init(workspaceResponse: WorkspaceResponse, surveyId: String) {
+    init(workspaceResponse: WorkspaceResponse, surveyId: String, hiddenFields: [String: String]? = nil) {
         self.surveyId = surveyId
-        if let webviewDataJson = WebViewData(workspaceResponse: workspaceResponse, surveyId: surveyId).getBase64EncodedJson(),
+        if let webviewDataJson = WebViewData(workspaceResponse: workspaceResponse, surveyId: surveyId, hiddenFields: hiddenFields).getBase64EncodedJson(),
            let surveyScriptUrl = FormbricksWorkspace.surveyScriptUrlString {
             htmlString = htmlTemplate.replacingOccurrences(of: "{{WEBVIEW_DATA}}", with: webviewDataJson)
                 .replacingOccurrences(of: "{{SURVEY_SCRIPT_URL}}", with: surveyScriptUrl)
@@ -94,7 +94,7 @@ private extension FormbricksViewModel {
 private class WebViewData {
     var data: [String: Any] = [:]
 
-    init(workspaceResponse: WorkspaceResponse, surveyId: String) {
+    init(workspaceResponse: WorkspaceResponse, surveyId: String, hiddenFields: [String: String]?) {
         let matchedSurvey = workspaceResponse.data.data.surveys?.first(where: {$0.id == surveyId})
         let settings = workspaceResponse.data.data.settings
 
@@ -106,6 +106,14 @@ private class WebViewData {
         data["environmentId"] = Formbricks.workspaceId
         data["contactId"] = Formbricks.userManager?.contactId
         data["isWebEnvironment"] = false
+
+        // SJ addition: per-trigger response context. The survey renderer seeds its response data
+        // with `hiddenFieldsRecord` and submits it with every response. Keys must be declared as
+        // hidden fields on the survey in Formbricks, or the backend drops them.
+        if let hiddenFields, !hiddenFields.isEmpty {
+            data["hiddenFieldsRecord"] = hiddenFields
+        }
+
         data["isBrandingEnabled"] = settings.inAppSurveyBranding ?? true
 
         if let placementEnum = matchedSurvey?.projectOverwrites?.placement {

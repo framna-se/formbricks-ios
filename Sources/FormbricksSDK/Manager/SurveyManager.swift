@@ -114,7 +114,8 @@ final class SurveyManager {
 
     /// Checks if there are any surveys to display, based in the track action, and if so, displays the first one.
     /// Handles the display percentage and the delay of the survey.
-    func track(_ action: String, completion: (() -> Void)? = nil) {
+    /// `hiddenFields` are forwarded to the survey renderer and submitted with the response.
+    func track(_ action: String, hiddenFields: [String: String]? = nil, completion: (() -> Void)? = nil) {
         guard !isShowingSurvey else { return }
 
         let actionClasses = workspaceResponse?.data.data.actionClasses ?? []
@@ -162,7 +163,7 @@ final class SurveyManager {
             DispatchQueue.global().asyncAfter(deadline: .now() + Double(timeout)) { [weak self] in
                 guard let self = self else { return }
                 if let workspaceResponse = self.workspaceResponse {
-                    self.presentSurveyManager.present(workspaceResponse: workspaceResponse, id: survey.id) { success in
+                    self.presentSurveyManager.present(workspaceResponse: workspaceResponse, id: survey.id, hiddenFields: hiddenFields) { success in
                         if !success {
                             self.isShowingSurvey = false
                         }
