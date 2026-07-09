@@ -86,8 +86,21 @@ final class UserManager: UserManagerSyncable {
         syncUser(withId: id)
     }
 
+    /// The user id the SDK is (or is about to be) operating as: the persisted id from the last
+    /// successful `/user` sync, or the id queued for the next commit right after `set(userId:)`.
+    var pendingOrCurrentUserId: String? {
+        return userId ?? updateQueue?.pendingUserId
+    }
+
+    /// `UserManagerSyncable` conformance (the update queue's commit path).
+    func syncUser(withId id: String, attributes: [String: AttributeValue]?) {
+        syncUser(withId: id, attributes: attributes, completion: nil)
+    }
+
     /// Syncs the user state with the server, calls the `self?.surveyManager?.filterSurveys()` method and starts the sync timer.
-    func syncUser(withId id: String, attributes: [String: AttributeValue]? = nil) {
+    /// The completion runs after surveys have been re-filtered against the fresh state (`true`), or
+    /// after a failed request (`false`, previous state kept). May be called on a background thread.
+    func syncUser(withId id: String, attributes: [String: AttributeValue]? = nil, completion: ((Bool) -> Void)? = nil) {
         service.postUser(id: id, attributes: attributes) { [weak self] result in
             switch result {
             case .success(let userResponse):
@@ -119,8 +132,10 @@ final class UserManager: UserManagerSyncable {
                 self?.updateQueue?.reset()
                 self?.surveyManager?.filterSurveys()
                 self?.startSyncTimer()
+                completion?(true)
             case .failure(let error):
                 Formbricks.logger?.error(error)
+                completion?(false)
             }
         }
     }

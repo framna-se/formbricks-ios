@@ -254,9 +254,45 @@ public enum FormbricksSurveyEvent {
     }
     
     /**
+     Sets attributes for the current user and syncs them to Formbricks immediately (SJ addition),
+     bypassing the debounced update queue. The completion runs after the server has re-evaluated the
+     user's segment membership and the SDK has re-filtered surveys, so targeting decisions made in
+     the completion (`track`, `hasEligibleSurvey`) see fresh state. Passes `false` when the SDK is
+     not initialized, no userId is set, or the request fails — survey filtering then still reflects
+     the previous state. The completion may be called on a background thread.
+
+     Requires a userId (set via the config builder or `setUserId`); attributes cannot be synced for
+     anonymous users.
+
+     Example:
+     ```swift
+     Formbricks.syncAttributes(["trainNumber": "545"]) { success in
+         Formbricks.track("journey_completed")
+     }
+     ```
+     */
+    public static func syncAttributes(_ attributes: [String: AttributeValue], completion: ((Bool) -> Void)? = nil) {
+        guard Formbricks.isInitialized else {
+            let error = FormbricksSDKError(type: .sdkIsNotInitialized)
+            Formbricks.logger?.error(error.message)
+            completion?(false)
+            return
+        }
+
+        guard let userId = userManager?.pendingOrCurrentUserId else {
+            let error = FormbricksSDKError(type: .userIdIsNotSetYet)
+            Formbricks.logger?.error(error.message)
+            completion?(false)
+            return
+        }
+
+        userManager?.syncUser(withId: userId, attributes: attributes, completion: completion)
+    }
+
+    /**
      Sets the language for the current user with the given `String`.
      This method can be called before or after SDK initialization.
-          
+
      Example:
      ```swift
      Formbricks.setLanguage("de")

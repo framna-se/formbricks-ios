@@ -75,6 +75,17 @@ Lets the host attach per-trigger context (e.g. train number, journey date) to re
 must be declared as a hidden field on the survey in Formbricks, or the backend drops it. Calling
 `track` without the parameter is unchanged. Not present upstream.
 
+## Awaitable attribute sync (SJ addition)
+
+`Formbricks.syncAttributes(_:completion:)` — sets user attributes and syncs them to the server
+immediately, bypassing the 0.5 s debounced update queue. The completion fires after the server has
+re-evaluated segment membership and the SDK has re-filtered surveys (or with `false` on
+not-initialized / no userId / request failure), so `track()`/`hasEligibleSurvey` called from the
+completion see fresh targeting state — the stock fire-and-forget `setAttribute` API gives no way to
+know when that happens. Resolves the identity via the persisted userId or the one still queued for
+first sync (`UserManager.pendingOrCurrentUserId`), so it works right after `setup` with a
+config-provided userId. Requires an identified user. Not present upstream.
+
 ## Eligibility query (SJ addition)
 
 `Formbricks.hasEligibleSurvey(forAction:) -> Bool` — reports whether a survey would show for a code
