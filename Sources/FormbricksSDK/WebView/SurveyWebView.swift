@@ -109,7 +109,7 @@ extension SurveyWebView {
             // JS library; it never legitimately navigates its own frame. Allow that base
             // document, and treat any other navigation — a link tap, window.location, meta
             // refresh or form submit from survey markup — as an attempt to leave the survey.
-            // Route those through the same http/https allowlist as the JS bridge so a
+            // Route those through the same https allowlist as the JS bridge so a
             // `<a href="tel:...">` (etc.) can't reach WKWebView's native scheme handling and
             // trigger unexpected native actions.
             if JsMessageHandler.shouldAllowInWebViewNavigation(to: url) {
@@ -142,11 +142,13 @@ final class JsMessageHandler: NSObject, WKScriptMessageHandler {
     }
 
     /// Whether an external URL from survey content is safe to hand to the OS.
-    /// Only web links are allowed; other schemes (tel, sms, custom app deep links,
-    /// etc.) are refused so survey content cannot trigger unexpected native actions.
+    /// Only https links are allowed; other schemes (tel, sms, custom app deep links,
+    /// etc.) are refused so survey content cannot trigger unexpected native actions,
+    /// and plain http is refused so a tap can't be handed to an unencrypted destination.
+    /// Narrower than upstream, which also allows http.
     static func isAllowedExternalURL(_ url: URL) -> Bool {
         guard let scheme = url.scheme?.lowercased() else { return false }
-        return scheme == "http" || scheme == "https"
+        return scheme == "https"
     }
 
     /// Whether a WebView navigation to `url` may proceed in-place. Only the in-memory
@@ -157,7 +159,7 @@ final class JsMessageHandler: NSObject, WKScriptMessageHandler {
         return scheme == "about"
     }
 
-    /// Opens an external URL through the http/https allowlist, or blocks and logs it.
+    /// Opens an external URL through the https allowlist, or blocks and logs it.
     /// Shared by the JS bridge (`onOpenExternalURL`) and the navigation delegate so the
     /// scheme allowlist is enforced on both paths.
     static func openExternalURL(_ url: URL) {

@@ -819,8 +819,9 @@ final class FormbricksSDKTests: XCTestCase {
                            "\(external) must not load in the survey frame")
         }
 
-        // Of the cancelled navigations, only http/https are actually opened; the rest are blocked.
+        // Of the cancelled navigations, only https is actually opened; the rest are blocked.
         XCTAssertTrue(JsMessageHandler.isAllowedExternalURL(URL(string: "https://formbricks.com")!))
+        XCTAssertFalse(JsMessageHandler.isAllowedExternalURL(URL(string: "http://example.com/x")!))
         XCTAssertFalse(JsMessageHandler.isAllowedExternalURL(URL(string: "tel:+123456789")!))
     }
 
@@ -828,14 +829,18 @@ final class FormbricksSDKTests: XCTestCase {
     /// content must be restricted to web schemes. Other schemes (tel, sms, custom
     /// app deep links, file, javascript, etc.) must be refused so survey content
     /// cannot trigger unexpected native actions.
+    ///
+    /// The SJ fork is narrower than upstream here: plain `http` is refused too, so a
+    /// tap in a survey can't hand the traveller to an unencrypted destination.
     func testExternalURLSchemeAllowlist() {
         // Allowed
-        for allowed in ["https://formbricks.com", "http://example.com/path?q=1", "HTTPS://UPPER.example"] {
+        for allowed in ["https://formbricks.com", "HTTPS://UPPER.example"] {
             let url = URL(string: allowed)!
             XCTAssertTrue(JsMessageHandler.isAllowedExternalURL(url), "\(allowed) should be allowed")
         }
         // Blocked
-        for blocked in ["tel:+123456789", "sms:+123456789", "mailto:a@b.com",
+        for blocked in ["http://example.com/path?q=1", "HTTP://UPPER.example",
+                        "tel:+123456789", "sms:+123456789", "mailto:a@b.com",
                         "facetime:a@b.com", "file:///etc/passwd", "javascript:alert(1)",
                         "whatsapp://send?text=hi", "myapp://do-something"] {
             let url = URL(string: blocked)!

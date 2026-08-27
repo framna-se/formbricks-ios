@@ -23,7 +23,7 @@ All changes are in `Sources/FormbricksSDK/WebView/`.
 
 3. **Unvalidated external-URL open — `SurveyWebView.swift` (`JsMessageHandler`).**
    `onOpenExternalURL` passed any JS-supplied string to `UIApplication.shared.open`. Now restricted
-   to `http`/`https` schemes; other schemes are blocked and logged.
+   to `https` only (plain `http` is also blocked); other schemes are blocked and logged.
 
 4. **HTML/JS template-literal injection — `FormbricksViewModel.swift`.**
    Survey JSON was interpolated into a JS backtick template literal, so survey-authored content
