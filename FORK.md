@@ -1,47 +1,47 @@
 # SJ fork of the Formbricks iOS SDK
 
 This is SJ's (Framna) fork of [`formbricks/ios`](https://github.com/formbricks/ios), maintained so
-the SJ app can embed the Formbricks survey WebView with the worst client-side security issues
-fixed. The SDK's public API is unchanged from upstream.
+the SJ app can drive the survey from Travel Mode: observe the survey lifecycle, ask whether a
+survey exists before offering it, and attach per-journey context to the response. The SDK's
+upstream public API is unchanged; everything here is additive.
 
-- **Upstream base:** tag `2.0.0`.
+- **Upstream base:** tag `2.1.0`.
 - **Working branch:** `sj/hardening`.
-- **Consumed by:** the SJ iOS app as a Swift Package dependency, pinned to a tag (e.g. `2.0.0-sj.1`).
+- **Consumed by:** the SJ iOS app as a Swift Package dependency, pinned to a tag (e.g. `2.1.0-sj.1`).
 
-## Deltas vs upstream `2.0.0`
+The fork began as a set of WebView security fixes against `2.0.0`. Upstream `2.1.0` (PR #51) took
+all of those, so they are no longer carried here — see *Security deltas* below for the one that
+remains.
 
-All changes are in `Sources/FormbricksSDK/WebView/`.
+## Security deltas vs upstream `2.1.0`
 
-1. **TLS certificate-validation bypass (critical) — `SurveyWebView.swift`.**
-   The `WKNavigationDelegate` auth-challenge handler accepted any server trust
-   (`URLCredential(trust:)` for any cert), disabling TLS validation and allowing MITM. Replaced with
-   `completionHandler(.performDefaultHandling, nil)` so the system validates the chain.
+1. **`https`-only external links — `WebView/SurveyWebView.swift` (`JsMessageHandler`).**
+   Upstream's `isAllowedExternalURL` allows both `http` and `https` for links opened from survey
+   content. The fork allows `https` only, so a tap in a survey can't hand the traveller to an
+   unencrypted destination. Both callers go through that one predicate — the JS bridge
+   (`onOpenExternalURL`) and the navigation delegate — so the narrowing covers both.
 
-2. **Remote WebView inspection in release builds — `SurveyWebView.swift`.**
-   `webView.isInspectable = true` was set unconditionally (iOS 16.4+), exposing the survey's JS
-   context and content to Safari Web Inspector in production. Now gated behind `#if DEBUG`.
-
-3. **Unvalidated external-URL open — `SurveyWebView.swift` (`JsMessageHandler`).**
-   `onOpenExternalURL` passed any JS-supplied string to `UIApplication.shared.open`. Now restricted
-   to `https` only (plain `http` is also blocked); other schemes are blocked and logged.
-
-4. **HTML/JS template-literal injection — `FormbricksViewModel.swift`.**
-   Survey JSON was interpolated into a JS backtick template literal, so survey-authored content
-   containing a backtick, `${…}`, or `</script>` could break out and execute. The payload is now
-   base64-encoded UTF-8 JSON in Swift (`WebViewData.getBase64EncodedJson`) and decoded in JS via
-   `atob` + `TextDecoder` before `JSON.parse`.
+Upstream `2.1.0` carries the rest of what this fork used to patch: default TLS chain validation,
+`isInspectable` gated behind `#if DEBUG`, an external-URL scheme allowlist, and a base64-encoded
+WebView payload (no more JS template-literal injection). Don't re-add them.
 
 ## Updating from upstream
 
-Fetch upstream, rebase `sj/hardening` onto the new release tag, re-run the iOS build, and cut a new
+`main` mirrors upstream exactly; every SJ change is a commit on `sj/hardening` on top of the
+upstream release tag. Fetch upstream, rebase, re-run the iOS build, and cut a new
 `<upstream>-sj.N` tag:
 
 ```
+git remote add upstream https://github.com/formbricks/ios.git   # once
 git fetch upstream --tags
-git rebase <new-upstream-tag> sj/hardening
+git rebase --onto <new-upstream-tag> <old-upstream-tag> sj/hardening
 xcodebuild -scheme FormbricksSDK -destination 'generic/platform=iOS Simulator' build
-git tag <new-upstream-tag>-sj.1 && git push origin sj/hardening --tags
+git tag <new-upstream-tag>-sj.1 && git push origin sj/hardening --tags --force-with-lease
 ```
+
+The branch is rebased, so the push rewrites history — the previous state stays reachable through
+its `<upstream>-sj.N` tag, which is what the app is pinned to anyway. Nothing in the repo records
+the version: the tag *is* the version (the podspec keeps upstream's number).
 
 Then bump the pinned version in the SJ app's Swift Package dependency.
 
@@ -85,6 +85,12 @@ completion see fresh targeting state — the stock fire-and-forget `setAttribute
 know when that happens. Resolves the identity via the persisted userId or the one still queued for
 first sync (`UserManager.pendingOrCurrentUserId`), so it works right after `setup` with a
 config-provided userId. Requires an identified user. Not present upstream.
+
+Interacts with upstream `2.1.0`'s interaction-based segment refresh: `syncUser`'s completion calls
+`UpdateQueue.syncDidFinish()`, so a `syncAttributes` landing while a queue-driven sync is airborne
+clears that sync's in-flight flag early. Upstream's own direct `syncUser` callers (the expiry timer,
+`syncUserStateIfNeeded`) have the same shape, so this is upstream behaviour rather than a fork
+regression — worth knowing if the two paths ever need to be serialised.
 
 ## Eligibility query (SJ addition)
 
