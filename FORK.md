@@ -56,8 +56,16 @@ production. Not present in upstream.
 
 `Formbricks.onSurveyEvent: ((FormbricksSurveyEvent) -> Void)?` — set by the host to observe survey
 lifecycle. `FormbricksSurveyEvent` is `.displayed(surveyId:)` / `.responded(surveyId:)` /
-`.closed(surveyId:)`, forwarded from the WebView JS events in `JsMessageHandler` on the main thread.
-Purely additive; the SDK's internal routing is unchanged. Not present upstream.
+`.finished(surveyId:)` / `.closed(surveyId:)`, forwarded from the WebView JS events in
+`JsMessageHandler` on the main thread. Purely additive; the SDK's internal routing is unchanged.
+Not present upstream.
+
+`.responded` and `.finished` are not the same fact and hosts should not treat them as one.
+`.responded` comes from `onResponseCreated`, which fires when the backend creates the response row
+— on the *first* answer, so a single tap on an auto-advancing rating question is enough. Only
+`.finished` (upstream `2.1.0`'s `onFinished`) means the survey was completed and the finished
+response was accepted. `.closed` can't stand in for it either: it arrives identically whether the
+window auto-closes after an ending or the user taps ✕.
 
 ## Presentation scrim (SJ change)
 

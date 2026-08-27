@@ -6,9 +6,16 @@ import Network
 public enum FormbricksSurveyEvent {
     /// The survey was shown to the user.
     case displayed(surveyId: String)
-    /// The user submitted a response.
+    /// The user submitted an answer. Fired on the *first* answer, when the backend creates the
+    /// response row — not on completion. Further answers update that row in place and raise
+    /// nothing. Use `.finished` to know the survey was actually completed.
     case responded(surveyId: String)
-    /// The survey was closed/dismissed.
+    /// The survey reached an ending and the finished response was accepted by the backend.
+    /// May fire more than once — the surveys library does not guard it. Consumers must be
+    /// idempotent. Never fires if the finishing request doesn't reach the backend.
+    case finished(surveyId: String)
+    /// The survey was closed/dismissed. Follows `.finished` by a few seconds on the automatic
+    /// close, or arrives on its own when the user taps the close button.
     case closed(surveyId: String)
 }
 

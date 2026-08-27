@@ -193,6 +193,7 @@ final class JsMessageHandler: NSObject, WKScriptMessageHandler {
             /// the survey window is still closed by `onClose`.
             case .onFinished:
                 refreshSegmentsOnce(for: .onFinished)
+                Formbricks.onSurveyEvent?(.finished(surveyId: surveyId))
 
             /// Happens when the user closes the survey view with the close button.
             case .onClose:
