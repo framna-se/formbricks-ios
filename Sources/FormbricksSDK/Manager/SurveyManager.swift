@@ -38,6 +38,11 @@ final class SurveyManager {
     internal static let workspaceResponseObjectKey = "workspaceResponseObjectKey"
     /// Pre-workspace-rename storage key. Read on first access so existing installs can be migrated.
     internal static let legacyEnvironmentResponseObjectKey = "environmentResponseObjectKey"
+    /// Which workspace the persisted payload was fetched for. The payload itself never says: the
+    /// workspace id only ever appears in the request URL, and the `settings.id` it does carry is
+    /// the *project* id, shared by that project's production and development environments.
+    /// Written and cleared by the same code paths as the payload, so the two cannot desync.
+    internal static let cachedWorkspaceIdKey = "cachedWorkspaceIdKey"
     private var backingWorkspaceResponse: WorkspaceResponse?
     /// Stores the surveys that are filtered based on the defined criteria, such as recontact days, display options etc.
     internal  private(set) var filteredSurveys: [Survey] = []
@@ -295,6 +300,13 @@ extension SurveyManager {
         let defaults = UserDefaults.standard
         defaults.removeObject(forKey: SurveyManager.workspaceResponseObjectKey)
         defaults.removeObject(forKey: SurveyManager.legacyEnvironmentResponseObjectKey)
+        defaults.removeObject(forKey: SurveyManager.cachedWorkspaceIdKey)
+    }
+
+    /// The workspace the persisted payload was fetched for, or `nil` when there is no payload or it
+    /// predates this bookkeeping.
+    static func cachedWorkspaceId() -> String? {
+        return UserDefaults.standard.string(forKey: SurveyManager.cachedWorkspaceIdKey)
     }
 
     var workspaceResponse: WorkspaceResponse? {
@@ -328,6 +340,8 @@ extension SurveyManager {
                 UserDefaults.standard.set(data, forKey: SurveyManager.workspaceResponseObjectKey)
                 // Drop the legacy cache key once we've written to the new one.
                 UserDefaults.standard.removeObject(forKey: SurveyManager.legacyEnvironmentResponseObjectKey)
+                // Stamp the payload's provenance in the same breath as the payload.
+                UserDefaults.standard.set(Formbricks.workspaceId, forKey: SurveyManager.cachedWorkspaceIdKey)
                 backingWorkspaceResponse = newValue
             } else {
                 let error = FormbricksSDKError(type: .unableToPersistEnvironment)
