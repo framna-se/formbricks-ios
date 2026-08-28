@@ -288,6 +288,15 @@ private extension SurveyManager {
 
 // MARK: - Store data in the UserDefaults -
 extension SurveyManager {
+    /// Removes the persisted workspace payload, under both the current and the pre-rename key.
+    /// Static, so it can run before a `SurveyManager` exists — `Formbricks.setup` drops the cache
+    /// of a workspace it is switching away from while it still has no managers.
+    static func clearPersistedWorkspaceCache() {
+        let defaults = UserDefaults.standard
+        defaults.removeObject(forKey: SurveyManager.workspaceResponseObjectKey)
+        defaults.removeObject(forKey: SurveyManager.legacyEnvironmentResponseObjectKey)
+    }
+
     var workspaceResponse: WorkspaceResponse? {
         get {
             if let workspaceResponse = backingWorkspaceResponse {

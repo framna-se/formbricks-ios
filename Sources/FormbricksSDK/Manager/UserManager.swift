@@ -17,7 +17,18 @@ final class UserManager: UserManagerSyncable {
     private static let responsesKey = "responsesKey"
     private static let lastDisplayedAtKey = "lastDisplayedAtKey"
     private static let expiresAtKey = "expiresAtKey"
-    
+
+    /// Removes every persisted contact key. Static, so it can run before a `UserManager` exists —
+    /// `Formbricks.setup` clears the state of a workspace it is switching away from while it still
+    /// has no managers.
+    static func clearPersistedState() {
+        let keys = [
+            userIdKey, contactIdKey, segmentsKey, displaysKey,
+            responsesKey, lastDisplayedAtKey, expiresAtKey
+        ]
+        keys.forEach { UserDefaults.standard.removeObject(forKey: $0) }
+    }
+
     private var backingUserId: String?
     private var backingContactId: String?
     private var backingSegments: [String]?
@@ -181,13 +192,7 @@ final class UserManager: UserManagerSyncable {
     func logout() {
         Formbricks.logger?.debug("Logging out and cleaning user state")
         
-        UserDefaults.standard.removeObject(forKey: UserManager.userIdKey)
-        UserDefaults.standard.removeObject(forKey: UserManager.contactIdKey)
-        UserDefaults.standard.removeObject(forKey: UserManager.segmentsKey)
-        UserDefaults.standard.removeObject(forKey: UserManager.displaysKey)
-        UserDefaults.standard.removeObject(forKey: UserManager.responsesKey)
-        UserDefaults.standard.removeObject(forKey: UserManager.lastDisplayedAtKey)
-        UserDefaults.standard.removeObject(forKey: UserManager.expiresAtKey)
+        UserManager.clearPersistedState()
         backingUserId = nil
         backingContactId = nil
         backingSegments = nil

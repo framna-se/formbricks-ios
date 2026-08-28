@@ -30,11 +30,6 @@ private final class CountingMockService: MockFormbricksService {
 
 final class SurveyInteractionRefreshTests: XCTestCase {
 
-    private let userDefaultsKeys = [
-        "userIdKey", "contactIdKey", "segmentsKey",
-        "displaysKey", "responsesKey", "lastDisplayedAtKey", "expiresAtKey"
-    ]
-
     override func setUp() {
         super.setUp()
         Formbricks.cleanup()
@@ -48,12 +43,11 @@ final class SurveyInteractionRefreshTests: XCTestCase {
     }
 
     private func clearUserState() {
-        userDefaultsKeys.forEach { UserDefaults.standard.removeObject(forKey: $0) }
+        UserManager.clearPersistedState()
         // The cached workspace blob outlives `Formbricks.cleanup()` on purpose (real apps rely
         // on it across launches), and its fixture `expiresAt` is years out — so without this a
         // blob written by an earlier run is reused and never refetched.
-        UserDefaults.standard.removeObject(forKey: SurveyManager.workspaceResponseObjectKey)
-        UserDefaults.standard.removeObject(forKey: SurveyManager.legacyEnvironmentResponseObjectKey)
+        SurveyManager.clearPersistedWorkspaceCache()
     }
 
     private func decodeSurvey(_ json: String) throws -> Survey {
