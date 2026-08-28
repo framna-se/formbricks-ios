@@ -109,6 +109,8 @@ public enum FormbricksSurveyEvent {
            return
        }
         
+        resetPersistedStateIfWorkspaceChanged(to: config.workspaceId)
+
         let svc: FormbricksServiceProtocol = config.customService ?? FormbricksService()
         
         userManager = UserManager()
@@ -414,6 +416,29 @@ public enum FormbricksSurveyEvent {
             performCleanup()
             completion?()
         }
+    }
+
+    /// Drops the persisted workspace payload and contact state when the SDK is set up against a
+    /// different workspace than the one the cache was fetched for.
+    ///
+    /// Both stores are keyed workspace-agnostically and outlive the process, and neither refresh
+    /// path re-reads them while they are live: `SurveyManager.refreshWorkspaceIfNeeded` returns
+    /// before the network call on a valid `expiresAt`, and `UserManager.syncUserStateIfNeeded` does
+    /// the same. So an app that restarts pointing at another workspace keeps serving the previous
+    /// workspace's surveys, and a contact identity that does not exist there, until both TTLs
+    /// lapse — up to an hour. A cache written before this bookkeeping existed reports no workspace,
+    /// which counts as a change: it is dropped once and refetched.
+    ///
+    /// Same workspace: nothing is touched, so a warm cache still spares the launch its round-trip.
+    private static func resetPersistedStateIfWorkspaceChanged(to workspaceId: String) {
+        let cachedWorkspaceId = SurveyManager.cachedWorkspaceId()
+        guard cachedWorkspaceId != workspaceId else {
+            return
+        }
+
+        logger?.debug("Workspace changed (\(cachedWorkspaceId ?? "none") -> \(workspaceId)); dropping the cached workspace and contact state")
+        SurveyManager.clearPersistedWorkspaceCache()
+        UserManager.clearPersistedState()
     }
 
     private static func performCleanup() {

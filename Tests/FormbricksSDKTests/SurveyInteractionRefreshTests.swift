@@ -337,12 +337,17 @@ final class SurveyInteractionRefreshTests: XCTestCase {
     /// path is covered — not just the pieces. Without this, the `.onFinished` switch case can be
     /// replaced with `break` and every other test still passes.
     private func setUpSdkWithFixture(_ service: FormbricksServiceProtocol, userId: String? = "user-1") -> String {
-        if let userId = userId {
-            UserDefaults.standard.set(userId, forKey: "userIdKey")
-        }
         Formbricks.setup(with: FormbricksConfig.Builder(appUrl: "https://example.com", workspaceId: "workspaceId")
             .service(service)
             .build())
+        // Planted after setup, not before: setup drops the persisted contact state when the cache
+        // it finds isn't this workspace's, and on the clean UserDefaults each test starts from
+        // there is no cache at all. Standing in for a contact synced during the session, which is
+        // what these tests need, is the honest order anyway — an app has no contact state before
+        // its first setup.
+        if let userId = userId {
+            UserDefaults.standard.set(userId, forKey: "userIdKey")
+        }
         return "cm6ovw6j7000gsf0kduf4oo4i" // the fixture survey, which carries interactionRefresh
     }
 
