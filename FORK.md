@@ -100,6 +100,32 @@ clears that sync's in-flight flag early. Upstream's own direct `syncUser` caller
 `syncUserStateIfNeeded`) have the same shape, so this is upstream behaviour rather than a fork
 regression — worth knowing if the two paths ever need to be serialised.
 
+## Workspace-switch cache reset (SJ fix)
+
+`Formbricks.setup(with:)` drops the persisted workspace payload and the contact state when it is
+set up against a different workspace than the cache was fetched for.
+
+Upstream keys both stores workspace-agnostically (`workspaceResponseObjectKey`, `userIdKey`,
+`contactIdKey`, …) and never invalidates them on a workspace change; nothing removes them either —
+not `logout()`, not `cleanup()`. Neither refresh path re-reads the server while the cache is live:
+`SurveyManager.refreshWorkspaceIfNeeded` returns before the network call on a valid `expiresAt`,
+and `UserManager.syncUserStateIfNeeded` does the same. Switching app environment logs out, wipes
+Core Data and restarts the app, but `UserDefaults` survives — so the new session kept serving the
+previous workspace's surveys (and a contact identity that doesn't exist there) for up to an hour.
+Seen 2026-08-28: a QA build served the cached production payload, 0 surveys, no prompt in Travel
+Mode (SJAPP-15617).
+
+The payload can't answer "which workspace am I from": the workspace id appears only in the request
+URL, and the `settings.id` it does carry is the *project* id, shared by that project's production
+and development environments. So `SurveyManager` records the workspace alongside the cache
+(`cachedWorkspaceIdKey`), written in the same setter that persists the payload and cleared by the
+same `clearPersistedWorkspaceCache()` — the two can't desync — and `setup` compares it before it
+builds its managers.
+
+Same workspace is untouched: the cache is still reused and still spares the launch its round-trip.
+A cache written before this existed records no workspace, so the first launch after the upgrade
+drops it once and refetches.
+
 ## Eligibility query (SJ addition)
 
 `Formbricks.hasEligibleSurvey(forAction:) -> Bool` — reports whether a survey would show for a code
